@@ -58,9 +58,10 @@ func VerifyRKE1Cluster(t *testing.T, client *rancher.Client, clustersConfig *clu
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
 	require.NoError(t, err)
 
+	var time int64 = 1
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.ID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: &time,
 	})
 	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
@@ -202,9 +203,10 @@ func VerifyHostedCluster(t *testing.T, client *rancher.Client, cluster *manageme
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
 	require.NoError(t, err)
 
+	var time int64 = 1
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.ID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: &time,
 	})
 	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
@@ -236,9 +238,10 @@ func VerifyDeleteRKE1Cluster(t *testing.T, client *rancher.Client, clusterID str
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
 	require.NoError(t, err)
 
+	var time int64 = 1
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + clusterID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: &time,
 	})
 	require.NoError(t, err)
 
@@ -268,9 +271,10 @@ func VerifyDeleteRKE2K3SCluster(t *testing.T, client *rancher.Client, clusterID 
 	provKubeClient, err := adminClient.GetKubeAPIProvisioningClient()
 	require.NoError(t, err)
 
+	var time int64 = 1
 	watchInterface, err := provKubeClient.Clusters(namespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.Name,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: &time,
 	})
 	require.NoError(t, err)
 
