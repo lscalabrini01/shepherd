@@ -122,9 +122,10 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
+	var time int64 = 1
 	watchInterface, err := kubeProvisioningClient.Clusters(namespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.Name,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: &time,
 	})
 	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
