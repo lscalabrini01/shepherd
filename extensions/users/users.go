@@ -1,28 +1,31 @@
 package users
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/rancher/norman/types"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+	authzv1 "k8s.io/api/authorization/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	extauthz "github.com/rancher/shepherd/extensions/kubeapi/authorization"
-	"github.com/rancher/shepherd/extensions/kubeapi/rbac"
 	password "github.com/rancher/shepherd/extensions/users/passwordgenerator"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
 	"github.com/rancher/shepherd/pkg/ref"
 	"github.com/rancher/shepherd/pkg/wait"
-	authzv1 "k8s.io/api/authorization/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 )
 
 const (
@@ -34,8 +37,8 @@ var timeout = int64(60 * 3)
 // UserConfig sets and returns username and password of the user
 func UserConfig() (user *management.User) {
 	enabled := true
-	var username = namegen.AppendRandomString("testuser-")
-	var testpassword = password.GenerateUserPassword("testpass-")
+	username := namegen.AppendRandomString("testuser-")
+	testpassword := password.GenerateUserPassword("testpass-")
 	user = &management.User{
 		Username: username,
 		Password: testpassword,
@@ -44,6 +47,22 @@ func UserConfig() (user *management.User) {
 	}
 
 	return
+}
+
+// RefreshGroupMembership is helper function that sends a POST request to user action refresh auth provider access
+func RefreshGroupMembership(client *rancher.Client) error {
+	endpoint := fmt.Sprintf("https://%v/v3/%v?action=%v", client.RancherConfig.Host, "users", "refreshauthprovideraccess")
+
+	var jsonResp map[string]any
+
+	bodyContent := []byte(`{}`)
+
+	err := client.Management.Ops.DoModify("POST", endpoint, &bodyContent, &jsonResp)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CreateUserWithRole is helper function that creates a user with a role or multiple roles
@@ -73,16 +92,16 @@ func CreateUserWithRole(rancherClient *rancher.Client, user *management.User, ro
 // AddProjectMember is a helper function that adds a project role to `user`. It uses the watch.WatchWait to ensure BackingNamespaceCreated is true.
 // If a list of ResourceAttributes is given, then the function blocks until all
 // attributes are allowed by SelfSubjectAccessReviews OR the function times out.
-func AddProjectMember(rancherClient *rancher.Client, project *management.Project,
-	user *management.User, projectRole string, attrs []*authzv1.ResourceAttributes) error {
-
+func AddProjectMember(rancherClient *rancher.Client, project *management.Project, user *management.User, projectRole string, attrs []*authzv1.ResourceAttributes) error {
 	role := &management.ProjectRoleTemplateBinding{
 		ProjectID:       project.ID,
 		UserPrincipalID: user.PrincipalIDs[0],
 		RoleTemplateID:  projectRole,
 	}
 
-	name := strings.Split(project.ID, ":")[1]
+	projectID := strings.Split(project.ID, ":")
+	namespace := string(projectID[0])
+	name := string(projectID[1])
 
 	adminClient, err := rancher.NewClient(rancherClient.RancherConfig.AdminToken, rancherClient.Session)
 	if err != nil {
@@ -90,7 +109,7 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 	}
 
 	opts := metav1.ListOptions{
-		FieldSelector:  "metadata.name=" + name,
+		FieldSelector:  fmt.Sprintf("metadata.name=%v,metadata.namespace=%v", name, namespace),
 		TimeoutSeconds: &timeout,
 	}
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ProjectType, opts)
@@ -181,9 +200,7 @@ func RemoveProjectMember(rancherClient *rancher.Client, user *management.User) e
 // AddClusterRoleToUser is a helper function that adds a cluster role to `user`.
 // If a list of ResourceAttributes is given, then the function blocks until all
 // attributes are allowed by SelfSubjectAccessReviews OR the function times out.
-func AddClusterRoleToUser(rancherClient *rancher.Client, cluster *management.Cluster,
-	user *management.User, clusterRole string, attrs []*authzv1.ResourceAttributes) error {
-
+func AddClusterRoleToUser(rancherClient *rancher.Client, cluster *management.Cluster, user *management.User, clusterRole string, attrs []*authzv1.ResourceAttributes) error {
 	role := &management.ClusterRoleTemplateBinding{
 		ClusterID:       cluster.Resource.ID,
 		UserPrincipalID: user.PrincipalIDs[0],
@@ -296,10 +313,6 @@ func GetUserIDByName(client *rancher.Client, username string) (string, error) {
 		return "", err
 	}
 
-	if err != nil {
-		return "", err
-	}
-
 	for _, user := range userList.Data {
 		if user.Username == username {
 			return user.ID, nil
@@ -346,7 +359,7 @@ func waitForRTBRollout(client *rancher.Client, rtbNamespace string, rtbName stri
 		Steps:    41,
 	}
 	err := kwait.ExponentialBackoff(backoff, func() (done bool, err error) {
-		downstreamCRBs, err := rbac.ListClusterRoleBindings(client, clusterID, metav1.ListOptions{
+		downstreamCRBs, err := listClusterRoleBindings(client, clusterID, metav1.ListOptions{
 			LabelSelector: selector.String(),
 		})
 		if err != nil {
@@ -379,4 +392,34 @@ func waitForAllowed(rancherClient *rancher.Client, clusterID string, user *manag
 	}
 
 	return extauthz.WaitForAllowed(userClient, clusterID, attrs)
+}
+
+func listClusterRoleBindings(client *rancher.Client, clusterName string, listOpt metav1.ListOptions) (*rbacv1.ClusterRoleBindingList, error) {
+	dynamicClient, err := client.GetDownStreamClusterClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleBindingGroupVersionResource := schema.GroupVersionResource{
+		Group:    rbacv1.SchemeGroupVersion.Group,
+		Version:  rbacv1.SchemeGroupVersion.Version,
+		Resource: "clusterrolebindings",
+	}
+
+	unstructuredList, err := dynamicClient.Resource(clusterRoleBindingGroupVersionResource).Namespace("").List(context.Background(), listOpt)
+	if err != nil {
+		return nil, err
+	}
+
+	crbList := new(rbacv1.ClusterRoleBindingList)
+	for _, unstructuredCRB := range unstructuredList.Items {
+		crb := &rbacv1.ClusterRoleBinding{}
+		err := scheme.Scheme.Convert(&unstructuredCRB, crb, unstructuredCRB.GroupVersionKind())
+		if err != nil {
+			return nil, err
+		}
+		crbList.Items = append(crbList.Items, *crb)
+	}
+
+	return crbList, nil
 }

@@ -3,15 +3,19 @@ package schema
 import (
 	"net/http"
 
+	aksv1 "github.com/rancher/aks-operator/pkg/apis/aks.cattle.io/v1"
+	eksv1 "github.com/rancher/eks-operator/pkg/apis/eks.cattle.io/v1"
+	gkev1 "github.com/rancher/gke-operator/pkg/apis/gke.cattle.io/v1"
 	rketypes "github.com/rancher/rke/types"
 
 	"github.com/rancher/norman/types"
 	m "github.com/rancher/norman/types/mapper"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apiserver/pkg/apis/apiserver"
+
 	"github.com/rancher/shepherd/pkg/schemas/factory"
 	"github.com/rancher/shepherd/pkg/schemas/mapper"
-	v1 "k8s.io/api/core/v1"
-	apiserver "k8s.io/apiserver/pkg/apis/apiserver"
 )
 
 var (
@@ -32,7 +36,6 @@ var (
 		Init(podSecurityAdmissionTypes).
 		Init(authzTypes).
 		Init(clusterTypes).
-		Init(catalogTypes).
 		Init(authnTypes).
 		Init(tokens).
 		Init(schemaTypes).
@@ -41,10 +44,6 @@ var (
 		Init(globalTypes).
 		Init(rkeTypes).
 		Init(composeType).
-		Init(projectCatalogTypes).
-		Init(clusterCatalogTypes).
-		Init(multiClusterAppTypes).
-		Init(globalDNSTypes).
 		Init(kontainerTypes).
 		Init(etcdBackupTypes).
 		Init(credTypes).
@@ -125,43 +124,6 @@ func driverMetadataTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.RkeK8sSystemImage{}).
 		MustImport(&Version, v3.RkeK8sServiceOption{}).
 		MustImport(&Version, v3.RkeAddon{})
-}
-
-func catalogTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		AddMapperForType(&Version, v3.Catalog{},
-			&m.Move{From: "catalogKind", To: "kind"},
-			&m.Embed{Field: "status"},
-			&m.Drop{Field: "helmVersionCommits"},
-		).
-		MustImport(&Version, v3.CatalogRefresh{}).
-		MustImportAndCustomize(&Version, v3.Catalog{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"refresh": {Output: "catalogRefresh"},
-			}
-			schema.CollectionActions = map[string]types.Action{
-				"refresh": {Output: "catalogRefresh"},
-			}
-		}).
-		AddMapperForType(&Version, v3.Template{},
-			m.DisplayName{},
-		).
-		MustImport(&Version, v3.Template{}, struct {
-			VersionLinks map[string]string
-		}{}).
-		AddMapperForType(&Version, v3.CatalogTemplate{},
-			m.DisplayName{},
-			m.Drop{Field: "namespaceId"},
-		).
-		MustImport(&Version, v3.CatalogTemplate{}, struct {
-			VersionLinks map[string]string
-		}{}).
-		AddMapperForType(&Version, v3.CatalogTemplateVersion{},
-			m.Drop{Field: "namespaceId"},
-		).
-		MustImport(&Version, v3.CatalogTemplateVersion{}).
-		MustImport(&Version, v3.TemplateVersion{}).
-		MustImport(&Version, v3.TemplateContent{})
 }
 
 func nativeNodeTypes(schemas *types.Schemas) *types.Schemas {
@@ -251,6 +213,74 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 					"election-timeout":   "5000",
 					"heartbeat-interval": "500",
 				}
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, gkev1.GKEClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("locations", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("nodePools", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, aksv1.AKSClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("nodePools", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, eksv1.EKSClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("nodeGroups", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("publicAccessSources", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("loggingTypes", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("subnets", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("securityGroups", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("tags", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, eksv1.NodeGroup{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("resourceTags", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("subnets", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("spotInstanceTypes", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("tags", func(field types.Field) types.Field {
+				field.Pointer = true
 				return field
 			})
 		}).
@@ -687,90 +717,6 @@ func globalTypes(schema *types.Schemas) *types.Schemas {
 
 func composeType(schemas *types.Schemas) *types.Schemas {
 	return schemas.MustImport(&Version, v3.ComposeConfig{})
-}
-
-func projectCatalogTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		AddMapperForType(&Version, v3.ProjectCatalog{},
-			&m.Move{From: "catalogKind", To: "kind"},
-			&m.Embed{Field: "status"},
-			&m.Drop{Field: "helmVersionCommits"},
-			&mapper.NamespaceIDMapper{}).
-		MustImportAndCustomize(&Version, v3.ProjectCatalog{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"refresh": {Output: "catalogRefresh"},
-			}
-			schema.CollectionActions = map[string]types.Action{
-				"refresh": {Output: "catalogRefresh"},
-			}
-		})
-}
-
-func clusterCatalogTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		AddMapperForType(&Version, v3.ClusterCatalog{},
-			&m.Move{From: "catalogKind", To: "kind"},
-			&m.Embed{Field: "status"},
-			&m.Drop{Field: "helmVersionCommits"},
-			&mapper.NamespaceIDMapper{}).
-		MustImportAndCustomize(&Version, v3.ClusterCatalog{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"refresh": {Output: "catalogRefresh"},
-			}
-			schema.CollectionActions = map[string]types.Action{
-				"refresh": {Output: "catalogRefresh"},
-			}
-		})
-}
-
-func multiClusterAppTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		AddMapperForType(&Version, v3.MultiClusterApp{}, m.Drop{Field: "namespaceId"}).
-		AddMapperForType(&Version, v3.MultiClusterAppRevision{}, m.Drop{Field: "namespaceId"}).
-		AddMapperForType(&Version, v3.Member{}, m.Drop{Field: "userName"}, m.Drop{Field: "displayName"}).
-		MustImport(&Version, v3.MultiClusterApp{}).
-		MustImport(&Version, v3.Target{}).
-		MustImport(&Version, v3.UpgradeStrategy{}).
-		MustImport(&Version, v3.MultiClusterAppRollbackInput{}).
-		MustImport(&Version, v3.MultiClusterAppRevision{}).
-		MustImport(&Version, v3.UpdateMultiClusterAppTargetsInput{}).
-		MustImportAndCustomize(&Version, v3.MultiClusterApp{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"rollback": {
-					Input: "multiClusterAppRollbackInput",
-				},
-				"addProjects": {
-					Input: "updateMultiClusterAppTargetsInput",
-				},
-				"removeProjects": {
-					Input: "updateMultiClusterAppTargetsInput",
-				},
-			}
-		})
-}
-
-func globalDNSTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		TypeName("globalDns", v3.GlobalDns{}).
-		TypeName("globalDnsProvider", v3.GlobalDnsProvider{}).
-		TypeName("globalDnsSpec", v3.GlobalDNSSpec{}).
-		TypeName("globalDnsStatus", v3.GlobalDNSStatus{}).
-		TypeName("globalDnsProviderSpec", v3.GlobalDNSProviderSpec{}).
-		MustImport(&Version, v3.UpdateGlobalDNSTargetsInput{}).
-		AddMapperForType(&Version, v3.GlobalDns{}, m.Drop{Field: "namespaceId"}).
-		AddMapperForType(&Version, v3.GlobalDnsProvider{}, m.Drop{Field: "namespaceId"}).
-		MustImportAndCustomize(&Version, v3.GlobalDns{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"addProjects": {
-					Input: "updateGlobalDNSTargetsInput",
-				},
-				"removeProjects": {
-					Input: "updateGlobalDNSTargetsInput",
-				},
-			}
-		}).
-		MustImportAndCustomize(&Version, v3.GlobalDnsProvider{}, func(schema *types.Schema) {
-		})
 }
 
 func kontainerTypes(schemas *types.Schemas) *types.Schemas {

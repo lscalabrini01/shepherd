@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+
 	"github.com/rancher/shepherd/clients/rancher"
 )
 
@@ -19,9 +20,9 @@ const (
 	k3sReleasePath      = "v1-k3s-release/releases"
 	gkeVersionPath      = "meta/gkeVersions"
 	aksVersionPath      = "meta/aksVersions"
-	eksVersionsFileURL  = "raw.githubusercontent.com/rancher/ui/master/lib/shared/addon/utils/amazon.js"
+	eksVersionsFileURL  = "raw.githubusercontent.com/rancher/dashboard/refs/heads/master/pkg/eks/assets/data/eks-versions.js"
 
-	eksVersionsSliceRegex      = `EKS_VERSIONS = \[\s*(.*?)\s*\]\;`
+	eksVersionsSliceRegex      = `\[(?:'\d+\.\d+',?\s*)+\]`
 	eksVersionsSliceItemsRegex = `(?s)'(.*?)'`
 )
 
@@ -185,7 +186,7 @@ func ListEKSAllVersions(client *rancher.Client) (allAvailableVersions []string, 
 	if len(match) == 0 {
 		return
 	}
-	versions := match[1]
+	versions := match[0]
 	rx := regexp.MustCompile(eksVersionsSliceItemsRegex)
 	out := rx.FindAllStringSubmatch(versions, -1)
 
@@ -203,7 +204,7 @@ func ListEKSAllVersions(client *rancher.Client) (allAvailableVersions []string, 
 // sortReleases is a private function that sorts release structs that are used for K3S and RKE2.
 // Sorted versions determined by these conditions:
 //  1. Release struct has serverArgs and agentArgs not empty fields
-//  2. Possible newest version of the minimum channel version
+//  2. Latest available patch version for each available minor
 func sortReleases(releases []interface{}) (allAvailableVersions []string) {
 	availableVersionsMap := map[string]semver.Version{}
 
@@ -215,28 +216,24 @@ func sortReleases(releases []interface{}) (allAvailableVersions []string) {
 			continue
 		}
 
-		minVersion := release.(map[string]interface{})["minChannelServerVersion"].(string)
 		kubernetesVersion := release.(map[string]interface{})["version"].(string)
-
-		minRancherVersion, err := semver.NewVersion(strings.TrimPrefix(minVersion, "v"))
-		if err != nil {
-			continue
-		}
 
 		releaseKubernetesVersion, err := semver.NewVersion(strings.TrimPrefix(kubernetesVersion, "v"))
 		if err != nil {
 			continue
 		}
 
-		value, ok := availableVersionsMap[minRancherVersion.String()]
+		minor := strings.Split(releaseKubernetesVersion.Original(), ".")[1]
+
+		value, ok := availableVersionsMap[minor]
 
 		if !ok || value.LessThan(releaseKubernetesVersion) {
-			availableVersionsMap[minRancherVersion.String()] = *releaseKubernetesVersion
+			availableVersionsMap[minor] = *releaseKubernetesVersion
 		}
 	}
 
 	for _, v := range availableVersionsMap {
-		allAvailableVersions = append(allAvailableVersions, fmt.Sprintf("v"+v.String()))
+		allAvailableVersions = append(allAvailableVersions, fmt.Sprintf("v%s", v.String()))
 	}
 
 	return

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,15 +19,14 @@ limitations under the License.
 package v1
 
 import (
-	"context"
-	"time"
+	context "context"
 
-	v1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
+	rkecattleiov1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	scheme "github.com/rancher/shepherd/pkg/generated/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // CustomMachinesGetter has a method to return a CustomMachineInterface.
@@ -38,158 +37,34 @@ type CustomMachinesGetter interface {
 
 // CustomMachineInterface has methods to work with CustomMachine resources.
 type CustomMachineInterface interface {
-	Create(ctx context.Context, customMachine *v1.CustomMachine, opts metav1.CreateOptions) (*v1.CustomMachine, error)
-	Update(ctx context.Context, customMachine *v1.CustomMachine, opts metav1.UpdateOptions) (*v1.CustomMachine, error)
-	UpdateStatus(ctx context.Context, customMachine *v1.CustomMachine, opts metav1.UpdateOptions) (*v1.CustomMachine, error)
+	Create(ctx context.Context, customMachine *rkecattleiov1.CustomMachine, opts metav1.CreateOptions) (*rkecattleiov1.CustomMachine, error)
+	Update(ctx context.Context, customMachine *rkecattleiov1.CustomMachine, opts metav1.UpdateOptions) (*rkecattleiov1.CustomMachine, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+	UpdateStatus(ctx context.Context, customMachine *rkecattleiov1.CustomMachine, opts metav1.UpdateOptions) (*rkecattleiov1.CustomMachine, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.CustomMachine, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.CustomMachineList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*rkecattleiov1.CustomMachine, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*rkecattleiov1.CustomMachineList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CustomMachine, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *rkecattleiov1.CustomMachine, err error)
 	CustomMachineExpansion
 }
 
 // customMachines implements CustomMachineInterface
 type customMachines struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithList[*rkecattleiov1.CustomMachine, *rkecattleiov1.CustomMachineList]
 }
 
 // newCustomMachines returns a CustomMachines
 func newCustomMachines(c *RkeV1Client, namespace string) *customMachines {
 	return &customMachines{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithList[*rkecattleiov1.CustomMachine, *rkecattleiov1.CustomMachineList](
+			"custommachines",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *rkecattleiov1.CustomMachine { return &rkecattleiov1.CustomMachine{} },
+			func() *rkecattleiov1.CustomMachineList { return &rkecattleiov1.CustomMachineList{} },
+		),
 	}
-}
-
-// Get takes name of the customMachine, and returns the corresponding customMachine object, and an error if there is any.
-func (c *customMachines) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.CustomMachine, err error) {
-	result = &v1.CustomMachine{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("custommachines").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of CustomMachines that match those selectors.
-func (c *customMachines) List(ctx context.Context, opts metav1.ListOptions) (result *v1.CustomMachineList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1.CustomMachineList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("custommachines").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested customMachines.
-func (c *customMachines) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("custommachines").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a customMachine and creates it.  Returns the server's representation of the customMachine, and an error, if there is any.
-func (c *customMachines) Create(ctx context.Context, customMachine *v1.CustomMachine, opts metav1.CreateOptions) (result *v1.CustomMachine, err error) {
-	result = &v1.CustomMachine{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("custommachines").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(customMachine).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a customMachine and updates it. Returns the server's representation of the customMachine, and an error, if there is any.
-func (c *customMachines) Update(ctx context.Context, customMachine *v1.CustomMachine, opts metav1.UpdateOptions) (result *v1.CustomMachine, err error) {
-	result = &v1.CustomMachine{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("custommachines").
-		Name(customMachine.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(customMachine).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *customMachines) UpdateStatus(ctx context.Context, customMachine *v1.CustomMachine, opts metav1.UpdateOptions) (result *v1.CustomMachine, err error) {
-	result = &v1.CustomMachine{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("custommachines").
-		Name(customMachine.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(customMachine).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the customMachine and deletes it. Returns an error if one occurs.
-func (c *customMachines) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("custommachines").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *customMachines) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("custommachines").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched customMachine.
-func (c *customMachines) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CustomMachine, err error) {
-	result = &v1.CustomMachine{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("custommachines").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

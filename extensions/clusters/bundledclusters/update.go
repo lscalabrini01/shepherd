@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 
 	apiv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
+
 	"github.com/rancher/shepherd/clients/rancher"
 	v3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
@@ -18,9 +19,6 @@ func (bc *BundledCluster) Update(client *rancher.Client, cUpdates *BundledCluste
 	updatedCluster.Meta = bc.Meta
 
 	steveclient := client.Steve.SteveType(clusters.ProvisioningSteveResourceType)
-	if err != nil {
-		return
-	}
 
 	if bc.V1 != nil {
 		updatedCluster.V1, err = steveclient.Update(bc.V1, cUpdates.V1)
@@ -181,8 +179,9 @@ func (bc *BundledCluster) UpdateNodepoolKubernetesVersions(client *rancher.Clien
 
 	switch bc.Meta.Provider {
 	case clusters.KubernetesProviderGKE:
-		for i := range cluster.V3.GKEConfig.NodePools {
-			cluster.V3.GKEConfig.NodePools[i].Version = versionToUpgrade
+		configNodePools := *cluster.V3.GKEConfig.NodePools
+		for i := range configNodePools {
+			configNodePools[i].Version = versionToUpgrade
 		}
 
 		updatedCluster, err = bc.Update(client, cluster)
@@ -190,8 +189,9 @@ func (bc *BundledCluster) UpdateNodepoolKubernetesVersions(client *rancher.Clien
 			return
 		}
 	case clusters.KubernetesProviderAKS:
-		for i := range cluster.V3.AKSConfig.NodePools {
-			cluster.V3.AKSConfig.NodePools[i].OrchestratorVersion = versionToUpgrade
+		configNodePools := *cluster.V3.AKSConfig.NodePools
+		for i := range configNodePools {
+			configNodePools[i].OrchestratorVersion = versionToUpgrade
 		}
 
 		updatedCluster, err = bc.Update(client, cluster)
@@ -199,8 +199,9 @@ func (bc *BundledCluster) UpdateNodepoolKubernetesVersions(client *rancher.Clien
 			return
 		}
 	case clusters.KubernetesProviderEKS:
-		for i := range cluster.V3.EKSConfig.NodeGroups {
-			cluster.V3.EKSConfig.NodeGroups[i].Version = versionToUpgrade
+		configNodeGroups := *cluster.V3.EKSConfig.NodeGroups
+		for i := range configNodeGroups {
+			configNodeGroups[i].Version = versionToUpgrade
 		}
 
 		updatedCluster, err = bc.Update(client, cluster)

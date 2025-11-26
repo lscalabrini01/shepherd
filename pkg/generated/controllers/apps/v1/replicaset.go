@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/apply"
 	"github.com/rancher/wrangler/v3/pkg/condition"
-	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/kv"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/equality"

@@ -19,10 +19,12 @@ const (
 	FreeIpaConfigFieldGroupSearchBase                 = "groupSearchBase"
 	FreeIpaConfigFieldGroupSearchFilter               = "groupSearchFilter"
 	FreeIpaConfigFieldLabels                          = "labels"
+	FreeIpaConfigFieldLogoutAllSupported              = "logoutAllSupported"
 	FreeIpaConfigFieldName                            = "name"
 	FreeIpaConfigFieldOwnerReferences                 = "ownerReferences"
 	FreeIpaConfigFieldPort                            = "port"
 	FreeIpaConfigFieldRemoved                         = "removed"
+	FreeIpaConfigFieldSearchUsingServiceAccount       = "searchUsingServiceAccount"
 	FreeIpaConfigFieldServers                         = "servers"
 	FreeIpaConfigFieldServiceAccountDistinguishedName = "serviceAccountDistinguishedName"
 	FreeIpaConfigFieldServiceAccountPassword          = "serviceAccountPassword"
@@ -34,6 +36,7 @@ const (
 	FreeIpaConfigFieldUserDisabledBitMask             = "userDisabledBitMask"
 	FreeIpaConfigFieldUserEnabledAttribute            = "userEnabledAttribute"
 	FreeIpaConfigFieldUserLoginAttribute              = "userLoginAttribute"
+	FreeIpaConfigFieldUserLoginFilter                 = "userLoginFilter"
 	FreeIpaConfigFieldUserMemberAttribute             = "userMemberAttribute"
 	FreeIpaConfigFieldUserNameAttribute               = "userNameAttribute"
 	FreeIpaConfigFieldUserObjectClass                 = "userObjectClass"
@@ -60,10 +63,12 @@ type FreeIpaConfig struct {
 	GroupSearchBase                 string            `json:"groupSearchBase,omitempty" yaml:"groupSearchBase,omitempty"`
 	GroupSearchFilter               string            `json:"groupSearchFilter,omitempty" yaml:"groupSearchFilter,omitempty"`
 	Labels                          map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	LogoutAllSupported              bool              `json:"logoutAllSupported,omitempty" yaml:"logoutAllSupported,omitempty"`
 	Name                            string            `json:"name,omitempty" yaml:"name,omitempty"`
 	OwnerReferences                 []OwnerReference  `json:"ownerReferences,omitempty" yaml:"ownerReferences,omitempty"`
 	Port                            int64             `json:"port,omitempty" yaml:"port,omitempty"`
 	Removed                         string            `json:"removed,omitempty" yaml:"removed,omitempty"`
+	SearchUsingServiceAccount       bool              `json:"searchUsingServiceAccount,omitempty" yaml:"searchUsingServiceAccount,omitempty"`
 	Servers                         []string          `json:"servers,omitempty" yaml:"servers,omitempty"`
 	ServiceAccountDistinguishedName string            `json:"serviceAccountDistinguishedName,omitempty" yaml:"serviceAccountDistinguishedName,omitempty"`
 	ServiceAccountPassword          string            `json:"serviceAccountPassword,omitempty" yaml:"serviceAccountPassword,omitempty"`
@@ -75,6 +80,7 @@ type FreeIpaConfig struct {
 	UserDisabledBitMask             int64             `json:"userDisabledBitMask,omitempty" yaml:"userDisabledBitMask,omitempty"`
 	UserEnabledAttribute            string            `json:"userEnabledAttribute,omitempty" yaml:"userEnabledAttribute,omitempty"`
 	UserLoginAttribute              string            `json:"userLoginAttribute,omitempty" yaml:"userLoginAttribute,omitempty"`
+	UserLoginFilter                 string            `json:"userLoginFilter,omitempty" yaml:"userLoginFilter,omitempty"`
 	UserMemberAttribute             string            `json:"userMemberAttribute,omitempty" yaml:"userMemberAttribute,omitempty"`
 	UserNameAttribute               string            `json:"userNameAttribute,omitempty" yaml:"userNameAttribute,omitempty"`
 	UserObjectClass                 string            `json:"userObjectClass,omitempty" yaml:"userObjectClass,omitempty"`

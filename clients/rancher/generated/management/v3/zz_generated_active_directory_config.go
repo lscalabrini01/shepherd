@@ -20,6 +20,7 @@ const (
 	ActiveDirectoryConfigFieldGroupSearchBase              = "groupSearchBase"
 	ActiveDirectoryConfigFieldGroupSearchFilter            = "groupSearchFilter"
 	ActiveDirectoryConfigFieldLabels                       = "labels"
+	ActiveDirectoryConfigFieldLogoutAllSupported           = "logoutAllSupported"
 	ActiveDirectoryConfigFieldName                         = "name"
 	ActiveDirectoryConfigFieldNestedGroupMembershipEnabled = "nestedGroupMembershipEnabled"
 	ActiveDirectoryConfigFieldOwnerReferences              = "ownerReferences"
@@ -36,6 +37,7 @@ const (
 	ActiveDirectoryConfigFieldUserDisabledBitMask          = "userDisabledBitMask"
 	ActiveDirectoryConfigFieldUserEnabledAttribute         = "userEnabledAttribute"
 	ActiveDirectoryConfigFieldUserLoginAttribute           = "userLoginAttribute"
+	ActiveDirectoryConfigFieldUserLoginFilter              = "userLoginFilter"
 	ActiveDirectoryConfigFieldUserNameAttribute            = "userNameAttribute"
 	ActiveDirectoryConfigFieldUserObjectClass              = "userObjectClass"
 	ActiveDirectoryConfigFieldUserSearchAttribute          = "userSearchAttribute"
@@ -62,6 +64,7 @@ type ActiveDirectoryConfig struct {
 	GroupSearchBase              string            `json:"groupSearchBase,omitempty" yaml:"groupSearchBase,omitempty"`
 	GroupSearchFilter            string            `json:"groupSearchFilter,omitempty" yaml:"groupSearchFilter,omitempty"`
 	Labels                       map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	LogoutAllSupported           bool              `json:"logoutAllSupported,omitempty" yaml:"logoutAllSupported,omitempty"`
 	Name                         string            `json:"name,omitempty" yaml:"name,omitempty"`
 	NestedGroupMembershipEnabled *bool             `json:"nestedGroupMembershipEnabled,omitempty" yaml:"nestedGroupMembershipEnabled,omitempty"`
 	OwnerReferences              []OwnerReference  `json:"ownerReferences,omitempty" yaml:"ownerReferences,omitempty"`
@@ -78,6 +81,7 @@ type ActiveDirectoryConfig struct {
 	UserDisabledBitMask          int64             `json:"userDisabledBitMask,omitempty" yaml:"userDisabledBitMask,omitempty"`
 	UserEnabledAttribute         string            `json:"userEnabledAttribute,omitempty" yaml:"userEnabledAttribute,omitempty"`
 	UserLoginAttribute           string            `json:"userLoginAttribute,omitempty" yaml:"userLoginAttribute,omitempty"`
+	UserLoginFilter              string            `json:"userLoginFilter,omitempty" yaml:"userLoginFilter,omitempty"`
 	UserNameAttribute            string            `json:"userNameAttribute,omitempty" yaml:"userNameAttribute,omitempty"`
 	UserObjectClass              string            `json:"userObjectClass,omitempty" yaml:"userObjectClass,omitempty"`
 	UserSearchAttribute          string            `json:"userSearchAttribute,omitempty" yaml:"userSearchAttribute,omitempty"`

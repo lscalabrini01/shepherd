@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,15 +19,14 @@ limitations under the License.
 package v1
 
 import (
-	"context"
-	"time"
+	context "context"
 
-	v1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
+	catalogcattleiov1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	scheme "github.com/rancher/shepherd/pkg/generated/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // UIPluginsGetter has a method to return a UIPluginInterface.
@@ -38,158 +37,34 @@ type UIPluginsGetter interface {
 
 // UIPluginInterface has methods to work with UIPlugin resources.
 type UIPluginInterface interface {
-	Create(ctx context.Context, uIPlugin *v1.UIPlugin, opts metav1.CreateOptions) (*v1.UIPlugin, error)
-	Update(ctx context.Context, uIPlugin *v1.UIPlugin, opts metav1.UpdateOptions) (*v1.UIPlugin, error)
-	UpdateStatus(ctx context.Context, uIPlugin *v1.UIPlugin, opts metav1.UpdateOptions) (*v1.UIPlugin, error)
+	Create(ctx context.Context, uIPlugin *catalogcattleiov1.UIPlugin, opts metav1.CreateOptions) (*catalogcattleiov1.UIPlugin, error)
+	Update(ctx context.Context, uIPlugin *catalogcattleiov1.UIPlugin, opts metav1.UpdateOptions) (*catalogcattleiov1.UIPlugin, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+	UpdateStatus(ctx context.Context, uIPlugin *catalogcattleiov1.UIPlugin, opts metav1.UpdateOptions) (*catalogcattleiov1.UIPlugin, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.UIPlugin, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.UIPluginList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*catalogcattleiov1.UIPlugin, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*catalogcattleiov1.UIPluginList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.UIPlugin, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *catalogcattleiov1.UIPlugin, err error)
 	UIPluginExpansion
 }
 
 // uIPlugins implements UIPluginInterface
 type uIPlugins struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithList[*catalogcattleiov1.UIPlugin, *catalogcattleiov1.UIPluginList]
 }
 
 // newUIPlugins returns a UIPlugins
 func newUIPlugins(c *CatalogV1Client, namespace string) *uIPlugins {
 	return &uIPlugins{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithList[*catalogcattleiov1.UIPlugin, *catalogcattleiov1.UIPluginList](
+			"uiplugins",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *catalogcattleiov1.UIPlugin { return &catalogcattleiov1.UIPlugin{} },
+			func() *catalogcattleiov1.UIPluginList { return &catalogcattleiov1.UIPluginList{} },
+		),
 	}
-}
-
-// Get takes name of the uIPlugin, and returns the corresponding uIPlugin object, and an error if there is any.
-func (c *uIPlugins) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.UIPlugin, err error) {
-	result = &v1.UIPlugin{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of UIPlugins that match those selectors.
-func (c *uIPlugins) List(ctx context.Context, opts metav1.ListOptions) (result *v1.UIPluginList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1.UIPluginList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested uIPlugins.
-func (c *uIPlugins) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a uIPlugin and creates it.  Returns the server's representation of the uIPlugin, and an error, if there is any.
-func (c *uIPlugins) Create(ctx context.Context, uIPlugin *v1.UIPlugin, opts metav1.CreateOptions) (result *v1.UIPlugin, err error) {
-	result = &v1.UIPlugin{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(uIPlugin).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a uIPlugin and updates it. Returns the server's representation of the uIPlugin, and an error, if there is any.
-func (c *uIPlugins) Update(ctx context.Context, uIPlugin *v1.UIPlugin, opts metav1.UpdateOptions) (result *v1.UIPlugin, err error) {
-	result = &v1.UIPlugin{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		Name(uIPlugin.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(uIPlugin).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *uIPlugins) UpdateStatus(ctx context.Context, uIPlugin *v1.UIPlugin, opts metav1.UpdateOptions) (result *v1.UIPlugin, err error) {
-	result = &v1.UIPlugin{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		Name(uIPlugin.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(uIPlugin).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the uIPlugin and deletes it. Returns an error if one occurs.
-func (c *uIPlugins) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *uIPlugins) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("uiplugins").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched uIPlugin.
-func (c *uIPlugins) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.UIPlugin, err error) {
-	result = &v1.UIPlugin{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("uiplugins").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }
